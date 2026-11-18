@@ -1,0 +1,1 @@
+{"description":"PALMA HEAT — an original open-world crime game for the browser, built for the make.fun gta6-01 competition.","devDependencies":{"playwright-core":"^1.49.0"},"name":"palma-heat","private":true,"scripts":{"test:e2e":"node e2e.mjs"},"type":"module","version":"1.0.0"}
