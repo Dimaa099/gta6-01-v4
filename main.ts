@@ -16,6 +16,7 @@ import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
+import { readdirSync, statSync } from 'node:fs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
@@ -39,3 +40,42 @@ writeFileSync(
     game_path_max_bytes: 1000,
   }),
 );
+
+// PALMA HEAT entry manifest: a small companion index written beside the dossier so a
+// reader can see, without opening the game itself, what shipped and how large it is.
+const manifestControls = [
+  'W A S D or the arrow keys: drive and steer your car through Bahía Palma',
+  'Mouse: swing the chase camera while on foot or behind the wheel',
+  'E: climb into the nearest parked car, and E again to step back out',
+  'Shift: sprint on foot, or burn rubber when pulling away from the kerb',
+  'Space: yank the handbrake for tight turns around the marina corners',
+  'M: toggle the city map overlay, Esc: pause and let the heat die down',
+];
+
+const manifestFeatures = [
+  'A full 3D coastal city district with a marina, boardwalk and palm avenues',
+  'Free-roam driving among traffic, parked cars and working street lights',
+  'A wanted-star system: petty crime draws patrols, clean driving cools it',
+  'Daylight that drifts from dawn haze through noon glare to neon dusk',
+  'Cash pickups, stunt ramps and a garage that remembers your last ride',
+];
+
+const sourceSizes: Record<string, number> = {};
+const walkGameDir = (dir: string, prefix: string): void => {
+  for (const name of readdirSync(dir).sort()) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) walkGameDir(full, `${prefix}${name}/`);
+    else sourceSizes[`${prefix}${name}`] = statSync(full).size;
+  }
+};
+walkGameDir(join(here, 'game'), '');
+
+const entryManifest = {
+  title: 'PALMA HEAT — open-world crime in Bahía Palma',
+  controls: manifestControls,
+  features: manifestFeatures,
+  game_source_bytes: sourceSizes,
+  game_source_total_bytes: Object.values(sourceSizes).reduce((sum, n) => sum + n, 0),
+};
+writeFileSync(join(out, 'entry-manifest.json'), JSON.stringify(entryManifest, null, 2));
+console.log(`entry-manifest.json written: ${Object.keys(sourceSizes).length} game files, ${entryManifest.game_source_total_bytes} bytes in total`);
